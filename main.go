@@ -3,25 +3,52 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 )
 
 func main() {
-	args := os.Args[1:]
-	if len(args) < 1 {
+
+	if len(os.Args) < 2 {
 		fmt.Println("no website provided")
-		os.Exit(1)
+		fmt.Println("usage: crawler <baseURL> <maxConcurrency> <maxPages>")
+		return
 	}
-	if len(args) > 1 {
-		fmt.Println("too many arguments provided")
-		os.Exit(1)
+	argsLen := len(os.Args)
+	maxConcurrency := 5
+	maxPages := 10
+	if argsLen >= 3 {
+		maxConcurrency64, err := strconv.ParseInt(os.Args[2], 10, 64)
+		if err != nil {
+			fmt.Printf("%s is not an integer value", os.Args[2])
+		} else {
+			maxConcurrency = int(maxConcurrency64)
+		}
+		if argsLen >= 4 {
+			maxPages64, err := strconv.ParseInt(os.Args[3], 10, 64)
+			if err != nil {
+				fmt.Printf("%s is not an integer value", os.Args[3])
+			} else {
+				maxPages = int(maxPages64)
+			}
+		}
 	}
 
-	fmt.Printf("starting crawl of: %s\n", args[0])
+	url := os.Args[1]
 
-	body, err := getHTML(args[0])
+	cfg, err := configure(url, maxConcurrency, maxPages)
 	if err != nil {
-		fmt.Printf("error: %v\n", err)
-		os.Exit(1)
+		fmt.Printf("Error - configure: %v", err)
+		return
 	}
-	fmt.Printf(body)
+
+	fmt.Printf("starting crawl of: %s\n", url)
+
+	cfg.wg.Add(1)
+	go cfg.crawlPage(url)
+
+	// Wait for all HTTP fetches to complete.
+	cfg.wg.Wait()
+
+	printReport(cfg.pages, url)
+
 }

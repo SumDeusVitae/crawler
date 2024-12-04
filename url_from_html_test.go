@@ -1,13 +1,19 @@
 package main
 
-import "testing"
+import (
+	"net/url"
+	"reflect"
+	"strings"
+	"testing"
+)
 
 func TestGetURLsFromHTML(t *testing.T) {
 	tests := []struct {
-		name      string
-		inputURL  string
-		inputBody string
-		expected  []string
+		name          string
+		inputURL      string
+		inputBody     string
+		expected      []string
+		errorContains string
 	}{
 		{
 			name:     "absolute and relative URLs",
@@ -70,19 +76,26 @@ func TestGetURLsFromHTML(t *testing.T) {
 
 	for i, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			actual, err := getURLsFromHTML(tc.inputBody, tc.inputURL)
+			baseURL, err := url.Parse(tc.inputURL)
 			if err != nil {
 				t.Errorf("Test %v - '%s' FAIL: unexpected error: %v", i, tc.name, err)
 				return
 			}
-			if len(actual) != len(tc.expected) {
-				t.Errorf("Test %v - '%s' FAIL: expected %v URLs, got %v", i, tc.name, len(tc.expected), len(actual))
+			actual, err := getURLsFromHTML(tc.inputBody, baseURL)
+			if err != nil && !strings.Contains(err.Error(), tc.errorContains) {
+				t.Errorf("Test %v - '%s' FAIL: unexpected error: %v", i, tc.name, err)
+				return
+			} else if err != nil && tc.errorContains == "" {
+				t.Errorf("Test %v - '%s' FAIL: unexpected error: %v", i, tc.name, err)
+				return
+			} else if err == nil && tc.errorContains != "" {
+				t.Errorf("Test %v - '%s' FAIL: expected error containing '%v', got none.", i, tc.name, tc.errorContains)
+				return
 			}
-			for j := range tc.expected {
-				// Check if the actual URL matches the expected one
-				if actual[j] != tc.expected[j] {
-					t.Errorf("Test %v - '%s' FAIL: expected URL %v, but got %v", i, tc.name, tc.expected[j], actual[j])
-				}
+
+			if !reflect.DeepEqual(actual, tc.expected) {
+				t.Errorf("Test %v - '%s' FAIL: expected URLs %v, got URLs %v", i, tc.name, tc.expected, actual)
+				return
 			}
 		})
 	}
