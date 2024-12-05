@@ -7,48 +7,41 @@ import (
 )
 
 func main() {
-
 	if len(os.Args) < 2 {
-		fmt.Println("no website provided")
-		fmt.Println("usage: crawler <baseURL> <maxConcurrency> <maxPages>")
+		fmt.Println("Usage: crawler <baseURL> <maxConcurrency> <maxPages>")
+		fmt.Println("By default maxConcurrency = 5 and maxPages=10")
 		return
-	}
-	argsLen := len(os.Args)
-	maxConcurrency := 5
-	maxPages := 10
-	if argsLen >= 3 {
-		maxConcurrency64, err := strconv.ParseInt(os.Args[2], 10, 64)
-		if err != nil {
-			fmt.Printf("%s is not an integer value", os.Args[2])
-		} else {
-			maxConcurrency = int(maxConcurrency64)
-		}
-		if argsLen >= 4 {
-			maxPages64, err := strconv.ParseInt(os.Args[3], 10, 64)
-			if err != nil {
-				fmt.Printf("%s is not an integer value", os.Args[3])
-			} else {
-				maxPages = int(maxPages64)
-			}
-		}
 	}
 
 	url := os.Args[1]
+	maxConcurrency := 5
+	maxPages := 10
+
+	if len(os.Args) >= 3 {
+		if val, err := strconv.Atoi(os.Args[2]); err == nil {
+			maxConcurrency = val
+		}
+	}
+
+	if len(os.Args) >= 4 {
+		if val, err := strconv.Atoi(os.Args[3]); err == nil {
+			maxPages = val
+		}
+	}
 
 	cfg, err := configure(url, maxConcurrency, maxPages)
 	if err != nil {
-		fmt.Printf("Error - configure: %v", err)
+		fmt.Printf("Error - configure: %v\n", err)
 		return
 	}
 
-	fmt.Printf("starting crawl of: %s\n", url)
+	fmt.Printf("Starting crawl of: %s\n", url)
 
 	cfg.wg.Add(1)
 	go cfg.crawlPage(url)
 
-	// Wait for all HTTP fetches to complete.
+	// Wait for all goroutines to finish
 	cfg.wg.Wait()
 
 	printReport(cfg.pages, url)
-
 }

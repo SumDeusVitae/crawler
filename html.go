@@ -3,19 +3,21 @@ package main
 import (
 	"fmt"
 	"io"
-	"net/http"
 	"strings"
 )
 
-func getHTML(rawURL string) (string, error) {
-	resp, err := http.Get(rawURL)
+func getHTML(rawURL string, cfg *config) (string, error) {
+	if cfg.isCrawlingStopped() {
+		return "", fmt.Errorf("crawling stopped, aborting request to %s", rawURL)
+	}
+	resp, err := cfg.client.Get(rawURL)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error making GET request: %v", err)
 	}
 	defer resp.Body.Close()
-
+	// checking status
 	if resp.StatusCode >= 400 {
-		return "", fmt.Errorf("error status code: %v", resp.StatusCode)
+		return "", fmt.Errorf("error status code: %v\n", resp.StatusCode)
 	}
 
 	contentType := resp.Header.Get("Content-Type")
