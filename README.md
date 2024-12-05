@@ -146,4 +146,3 @@ For questions or feedback, reach out via [My website](https://kskyi.netlify.app/
 
 ---
 
-Feel free to adjust sections like **Contact**, **License**, and **Contributing** to match your preferences! Let me know if you’d like additional content or tweaks.
